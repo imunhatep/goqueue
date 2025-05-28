@@ -1,4 +1,4 @@
-package pubsub
+package events
 
 import (
 	"context"
@@ -18,7 +18,7 @@ func TestEventDispatcher_SubscribeAndPublish(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)
@@ -42,7 +42,7 @@ func TestEventDispatcher_PublishWithNoSubscribers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	// Publish without any subscribers
@@ -55,7 +55,7 @@ func TestEventDispatcher_MultipleSubscribers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	ch1, unsubscribe1 := dispatcher.Subscribe(subject)
@@ -88,7 +88,7 @@ func TestEventDispatcher_Unsubscribe(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)
@@ -113,7 +113,7 @@ func TestEventDispatcher_Unsubscribe(t *testing.T) {
 func TestEventDispatcher_Close(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)
@@ -134,7 +134,7 @@ func TestEventDispatcher_SingleLevelWildcard(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.*"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)
@@ -157,7 +157,7 @@ func TestEventDispatcher_MultiLevelWildcard(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.>"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)
@@ -180,7 +180,7 @@ func TestEventDispatcher_NoMatchForDifferentSubject(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	dispatcher := NewEventDispatcher(ctx)
+	dispatcher := NewLocalDispatcher(ctx)
 	subject := "test.subject"
 
 	ch, unsubscribe := dispatcher.Subscribe(subject)

@@ -78,6 +78,9 @@ import (
 )
 
 func main() {
+	// init metrics, optional
+	queue.NewQueueMetrics(queue.QueueMetricsSubsystem)
+	
 	source := make(chan string)
 	
 	ctx, cancel := context.WithCancel(context.Background())

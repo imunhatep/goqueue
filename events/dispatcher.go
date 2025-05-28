@@ -1,4 +1,4 @@
-package pubsub
+package events
 
 import (
 	"context"
@@ -7,21 +7,15 @@ import (
 	"time"
 )
 
-type Event struct {
-	Subject  string            `json:"subject"`            // The exact subject name
-	Data     interface{}       `json:"data"`               // The actual event data
-	Metadata map[string]string `json:"metadata,omitempty"` // Optional metadata like timestamps, IDs, etc.
-}
-
-type EventDispatcher struct {
+type LocalDispatcher struct {
 	mu          sync.RWMutex
 	subscribers map[string][]chan Event
 	publishCh   chan Event
 }
 
-// NewEventDispatcher creates a new EventDispatcher with a dedicated goroutine for processing.
-func NewEventDispatcher(ctx context.Context) *EventDispatcher {
-	ed := &EventDispatcher{
+// NewLocalDispatcher creates a new LocalDispatcher with a dedicated goroutine for processing.
+func NewLocalDispatcher(ctx context.Context) *LocalDispatcher {
+	ed := &LocalDispatcher{
 		subscribers: make(map[string][]chan Event),
 		publishCh:   make(chan Event),
 	}
@@ -31,7 +25,7 @@ func NewEventDispatcher(ctx context.Context) *EventDispatcher {
 	return ed
 }
 
-func (ed *EventDispatcher) run(ctx context.Context) {
+func (ed *LocalDispatcher) run(ctx context.Context) {
 	for {
 		select {
 		case event := <-ed.publishCh:
@@ -54,28 +48,32 @@ func (ed *EventDispatcher) run(ctx context.Context) {
 	}
 }
 
-func (ed *EventDispatcher) Subscribe(subject string) (<-chan Event, func()) {
+func (ed *LocalDispatcher) Subscribe(name string, subjects ...string) (<-chan Event, func()) {
 	ch := make(chan Event)
 
 	ed.mu.Lock()
-	ed.subscribers[subject] = append(ed.subscribers[subject], ch)
+	for _, subject := range subjects {
+		ed.subscribers[subject] = append(ed.subscribers[subject], ch)
+	}
 	ed.mu.Unlock()
 
 	unsubscribe := func() {
 		ed.mu.Lock()
 		defer ed.mu.Unlock()
 
-		chans := ed.subscribers[subject]
-		for i, sub := range chans {
-			if sub == ch {
-				ed.subscribers[subject] = append(chans[:i], chans[i+1:]...)
-				close(ch)
-				break
+		for _, subject := range subjects {
+			chans := ed.subscribers[subject]
+			for i, sub := range chans {
+				if sub == ch {
+					ed.subscribers[subject] = append(chans[:i], chans[i+1:]...)
+					close(ch)
+					break
+				}
 			}
-		}
 
-		if len(ed.subscribers[subject]) == 0 {
-			delete(ed.subscribers, subject)
+			if len(ed.subscribers[subject]) == 0 {
+				delete(ed.subscribers, subject)
+			}
 		}
 	}
 
@@ -83,7 +81,7 @@ func (ed *EventDispatcher) Subscribe(subject string) (<-chan Event, func()) {
 }
 
 // Publish sends a message to all subscribers of the given subject.
-func (ed *EventDispatcher) Publish(subject string, data interface{}) {
+func (ed *LocalDispatcher) Publish(subject string, data interface{}) error {
 	// predefined meta, should be an argument
 	metadata := map[string]string{
 		"timestamp": time.Now().Format(time.DateTime),
@@ -96,10 +94,12 @@ func (ed *EventDispatcher) Publish(subject string, data interface{}) {
 	}
 
 	ed.publishCh <- event
+
+	return nil
 }
 
 // Close stops the dispatcher and cleans up resources.
-func (ed *EventDispatcher) close() {
+func (ed *LocalDispatcher) close() {
 	ed.mu.Lock()
 	for subject, chans := range ed.subscribers {
 		for _, ch := range chans {

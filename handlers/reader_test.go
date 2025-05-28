@@ -1,4 +1,4 @@
-package queue
+package handlers
 
 import (
 	"github.com/rs/zerolog"
