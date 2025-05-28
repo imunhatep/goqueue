@@ -76,8 +76,6 @@ func (d *NatsDispatcher) Publish(subject string, data interface{}) error {
 		return errors.New(err)
 	}
 
-	log.Trace().Str("subject", subject).Int("size", len(eventData)).Msg("[NatsDispatcher] published")
-
 	return nil
 }
 
@@ -162,7 +160,7 @@ func (d *NatsDispatcher) createEventCallback(name string, ch chan Event) func(*n
 		select {
 		case ch <- event:
 		case <-d.ctx.Done():
-			log.Warn().Str("subject", subject).Msg("[NatsDispatcher] context canceled, dropping event")
+			log.Info().Str("subject", subject).Msg("[NatsDispatcher] context canceled, dropping event")
 		}
 	}
 }
